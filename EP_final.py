@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[8]:
-
 
 import dask.dataframe as dd
 from dask.distributed import Client
@@ -17,6 +12,10 @@ from decimal import Decimal  # Add this import statement
 import pyarrow.dataset as ds
 import shutil
 import gc
+import time
+
+start_time = time.time()  # Start time
+
 
 # Function to flush the cache
 def flush_cache():
@@ -232,13 +231,15 @@ def process_parquet_files(parquet_files, export_path, filter_string, lob_id, spe
     # Add LobID and LobName columns
     final_df_EP_LOB_GU['LobID'] = lob_id
     final_df_EP_LOB_GU['LobName'] = filter_string
+    final_df_EP_LOB_GU['LobID'] = final_df_EP_LOB_GU['LobID'].apply(lambda x: Decimal(x))
+
 
     # Define the schema to match the required Parquet file schema
     schema = pa.schema([
         pa.field('EPType', pa.string(), nullable=True),
         pa.field('Loss', pa.float64(), nullable=True),
         pa.field('ReturnPeriod', pa.float64(), nullable=True),
-        pa.field('LobID', pa.float64(), nullable=True),
+        pa.field('LobID', pa.decimal128(38, 0), nullable=True),
         pa.field('LobName', pa.string(), nullable=True),
     ])
 
@@ -1035,8 +1036,31 @@ export_path = os.path.join(main_folder_path, 'PLT', 'Portfolio', 'GR', f'ILC2024
 process_PLT_lob(parquet_files_gr, export_path)
 
 
-# In[ ]:
+#updates made after here 
 
+# Define the folder to be zipped
+folder_to_zip = main_folder_path  # Change this to your folder path
+
+# Get the parent directory and zip file name
+parent_dir, folder_name = os.path.split(folder_to_zip)
+output_zip = os.path.join(parent_dir, folder_name)  # Same name as folder
+
+# Create a zip archive
+shutil.make_archive(output_zip, 'zip', folder_to_zip)
+
+# Remove the original folder after zipping
+shutil.rmtree(folder_to_zip)
+
+print(f"Replaced '{folder_to_zip}' with '{output_zip}.zip'")
+
+
+
+
+
+end_time = time.time()  # End time
+elapsed_time = (end_time - start_time) / 60  # Convert seconds to minutes
+
+print(f"Process finished in {elapsed_time:.2f} minutes")
 
 
 
